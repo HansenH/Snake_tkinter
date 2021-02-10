@@ -1,101 +1,134 @@
 import keyboard # https://github.com/boppreh/keyboard
 import threading
 import tkinter
-import time
+import random
+# import time
+# import os
 
 TABLE_WIDTH = 20
 TABLE_HEIGHT = 20
 SNAKE_INITIAL_LENGTH = 4
-SPEED = (0.3, 0.25, 0.2, 0.15, 0.1)
+SPEED = 0.14     # the smaller, the faster
 
 class Main():
+    '''listening key events and create game and ui threads'''
     def __init__(self):
         self.game = Game()
         self.game.start()
-
         # self.ui = UI()
         # self.ui.start()
 
         def up(event):
-            self.game.direction = 1
+            self.game.go_up()
 
         def down(event):
-            self.game.direction = 2
+            self.game.go_down()
 
         def left(event):
-           self.game.direction = 3
+            self.game.go_left()
 
         def right(event):
-            self.game.direction = 4
+            self.game.go_right()
 
-        # keyboard.on_press_key('up', up, suppress=False)
-        # keyboard.on_press_key('down', down, suppress=False)
-        # keyboard.on_press_key('left', left, suppress=False)
-        # keyboard.on_press_key('right', right, suppress=False)
-        # keyboard.on_press_key('w', up, suppress=False)
-        # keyboard.on_press_key('s', down, suppress=False)
-        # keyboard.on_press_key('a', left, suppress=False)
-        # keyboard.on_press_key('d', right, suppress=False)
-
-        # keyboard.wait('esc', suppress=True)
+        keyboard.on_press_key('up', up, suppress=False)
+        keyboard.on_press_key('down', down, suppress=False)
+        keyboard.on_press_key('left', left, suppress=False)
+        keyboard.on_press_key('right', right, suppress=False)
+        keyboard.on_press_key('w', up, suppress=False)
+        keyboard.on_press_key('s', down, suppress=False)
+        keyboard.on_press_key('a', left, suppress=False)
+        keyboard.on_press_key('d', right, suppress=False)
 
 
 class Game(threading.Thread):
+    '''game logic as a thread'''
     def __init__(self):
         super().__init__()
+        self.game_over = False
         self.score = 0
-        self.direction = 0
-        self.speed_level = 0 
-        self.table = [[0 for col in range(TABLE_WIDTH)] for row in range(TABLE_HEIGHT)] # 1 for snake, 2 for apple
-        self.head = [int((TABLE_WIDTH) * 0.4), int((TABLE_HEIGHT - 1) / 2)]   # coordinate of snake head
-        self.table[int((TABLE_HEIGHT - 1) / 2)][int((TABLE_WIDTH) * 0.7)] = 3   # initialize the apple
+        self.snake_length = SNAKE_INITIAL_LENGTH
+        self.direction = 4      # 1 for up, 2 for down, 3 for left, 4 four right
+        self.direction_lock = False
+        self.table = [[0 for col in range(TABLE_WIDTH)] for row in range(TABLE_HEIGHT)] # 0 for blank table
+        self.head = [int((TABLE_WIDTH) * 0.4), int((TABLE_HEIGHT - 1) / 2)]   # coordinate of snake head (x, y)
+        self.table[int((TABLE_HEIGHT - 1) / 2)][int((TABLE_WIDTH) * 0.7)] = -1   # initialize the apple (-1) on table(y, x)
         for i in range(SNAKE_INITIAL_LENGTH):
-            self.table[self.head[1]][self.head[0] - i] = 1  # initialize the snake
+            self.table[self.head[1]][self.head[0] - i] = SNAKE_INITIAL_LENGTH - i  # initialize the snake (>0)
 
-        
-        for j in range(len(self.table)):
-            print(self.table[j])
+    def go_up(self):
+        if not self.direction_lock and self.direction != 2:
+            self.direction = 1
+            self.direction_lock = True
+
+    def go_down(self):
+        if not self.direction_lock and self.direction != 1:
+            self.direction = 2
+            self.direction_lock = True
+
+    def go_left(self):
+        if not self.direction_lock and self.direction != 4:
+            self.direction = 3
+            self.direction_lock = True
+
+    def go_right(self):
+        if not self.direction_lock and self.direction != 3:
+            self.direction = 4
+            self.direction_lock = True
 
     def run(self):
+        def new_apple():
+            '''create a new apple at a valid position'''
+            apple_index = random.randint(1, TABLE_WIDTH * TABLE_HEIGHT - self.snake_length)
+            counter = 0
+            for i in range(TABLE_HEIGHT):
+                for j in range(TABLE_WIDTH):
+                    if self.table[i][j] == 0:
+                        counter += 1
+                        if counter == apple_index:
+                            self.table[i][j] = -1
+
         def one_step():
-            if self.direction == 1
+            '''one step forward'''
+            if not self.game_over:
+                threading.Timer(SPEED, one_step).start()    #create timer thread for next step
 
+                if self.direction == 1:
+                    self.head[1] -= 1
+                elif self.direction == 2:
+                    self.head[1] += 1
+                elif self.direction == 3:
+                    self.head[0] -= 1
+                elif self.direction == 4:
+                    self.head[0] += 1
+                self.direction_lock = False
 
+                if (self.head[1] < 0 or self.head[1] >= TABLE_HEIGHT
+                        or self.head[0] < 0 or self.head[0] >= TABLE_WIDTH):
+                    self.game_over = True   #hit wall
+                    return
+                if self.table[self.head[1]][self.head[0]] > 0:
+                    self.game_over = True   # hit itself
+                    return
+                if self.table[self.head[1]][self.head[0]] == 0: # if not eating apple
+                    for i in range(TABLE_HEIGHT):
+                        for j in range(TABLE_WIDTH):
+                            if self.table[i][j] > 0:
+                                self.table[i][j] -= 1   # move body
+                else:
+                    self.snake_length += 1  # if getting an apple: grow longer
+                    new_apple()
+                self.table[self.head[1]][self.head[0]] = self.snake_length  #move head
 
-        keyboard.wait('esc', suppress=True)
+                # os.system("cls")
+                # for i in self.table:
+                #     print(i)
 
+        one_step()
         
-        
 
-
-
-
-
-
-        
 class UI(threading.Thread):
     pass
 
 
 if __name__ == '__main__':
     main = Main()
-
-
-# import threading
-# import time
-
-# def func1(a):
-#     if a > 10:
-#         time_end=time.time()
-#         print('totally cost',time_end-time_start)
-#         return
-#     t=threading.Timer(0.1,func1,(a + 1,))
-#     t.start()
-#     print(a)
-#     print('当前线程数为{}'.format(threading.activeCount()))
-
-
-
-# func1(1)
-
-
