@@ -92,14 +92,17 @@ class Game(threading.Thread):
     def run(self):
         def new_apple():
             '''create a new apple at a valid position'''
-            apple_index = random.randint(1, TABLE_COLS * TABLE_ROWS - self.snake_length)
-            counter = 0
-            for i in range(TABLE_ROWS):
-                for j in range(TABLE_COLS):
-                    if self.table[i][j] == 0:
-                        counter += 1
-                        if counter == apple_index:
-                            self.table[i][j] = -1
+            try:
+                apple_index = random.randint(1, TABLE_COLS * TABLE_ROWS - self.snake_length)
+                counter = 0
+                for i in range(TABLE_ROWS):
+                    for j in range(TABLE_COLS):
+                        if self.table[i][j] == 0:
+                            counter += 1
+                            if counter == apple_index:
+                                self.table[i][j] = -1
+            except ValueError:
+                pass
 
         def one_step():
             '''one step forward'''
