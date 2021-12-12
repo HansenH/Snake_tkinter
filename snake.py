@@ -24,22 +24,20 @@ WINDOW_ADAPT = True     # True: window can self-adapt, False: lock window size
 class Main():
     '''listening key events and create game and ui threads'''
     def __init__(self):
-        self.game = Game()
-        self.game.start()
-        ui = UI(self)
-        ui.start()
+        self.ui = UI()
+        self.ui.start()
 
         def up(event):
-            self.game.go_up()
+            self.ui.game.go_up()
 
         def down(event):
-            self.game.go_down()
+            self.ui.game.go_down()
 
         def left(event):
-            self.game.go_left()
+            self.ui.game.go_left()
 
         def right(event):
-            self.game.go_right()
+            self.ui.game.go_right()
 
         keyboard.on_press_key('up', up, suppress=False)
         keyboard.on_press_key('down', down, suppress=False)
@@ -60,15 +58,16 @@ class Game(threading.Thread):
     def __init__(self):
         super().__init__()
         self.game_over = False
-        self.snake_length = SNAKE_INITIAL_LENGTH    # score = self.snake_length - SNAKE_INITIAL_LENGTH
-        self.direction = -4      #  -4 before start, 1 for up, 2 for down, 3 for left, 4 four right
+        self.snake_length = SNAKE_INITIAL_LENGTH
+        self.score = 0
+        self.direction = -4  # -4 before start, 1 for up, 2 for down, 3 for left, 4 four right
         self.direction_lock = False
         self.table = [[0 for col in range(TABLE_COLS)] for row in range(TABLE_ROWS)] # 0 for blank table
         self.head = [int((TABLE_COLS) * 0.4), int((TABLE_ROWS - 1) / 2)]   # coordinate of snake head (x, y)
         self.table[int((TABLE_ROWS - 1) / 2)][int((TABLE_COLS) * 0.7)] = -1   # initialize the apple (-1) on table(y, x)
         for i in range(SNAKE_INITIAL_LENGTH):
             self.table[self.head[1]][self.head[0] - i] = SNAKE_INITIAL_LENGTH - i  # initialize the snake (>0)
-
+                
     def go_up(self):
         if not self.direction_lock and self.direction != 2:
             self.direction = 1
@@ -107,7 +106,7 @@ class Game(threading.Thread):
         def one_step():
             '''one step forward'''
             if not self.game_over:
-                threading.Timer(SPEED, one_step).start()    # create timer thread for next step
+                threading.Timer(SPEED, one_step).start()  # create timer thread for next step
 
                 if self.direction == 1:
                     self.head[1] -= 1   # go up
@@ -135,6 +134,7 @@ class Game(threading.Thread):
                                 self.table[i][j] -= 1   # move body
                 else:
                     self.snake_length += 1  # if getting an apple: grow longer
+                    self.score += 1
                     new_apple()
                 self.table[self.head[1]][self.head[0]] = self.snake_length  # new head
 
@@ -143,9 +143,13 @@ class Game(threading.Thread):
 
 class UI(threading.Thread):
     '''a self-adapting GUI window'''
-    def __init__(self, main):
+    def __init__(self):
         super().__init__()
-        self.main = main
+        self.new_game()
+
+    def new_game(self):
+        self.game = Game()
+        self.game.start()
 
     def run(self):
         window = tkinter.Tk()
@@ -157,7 +161,7 @@ class UI(threading.Thread):
         window.deiconify()
 
         def on_closing():
-            self.main.game.game_over = True     # to terminate game thread
+            self.game.game_over = True     # to terminate game thread
             window.destroy()
         window.protocol('WM_DELETE_WINDOW', on_closing)
 
@@ -202,25 +206,24 @@ class UI(threading.Thread):
                     )
         
         def refresh_screen():
-            if not self.main.game.game_over:
+            if not self.game.game_over:
                 canvas.after(10, refresh_screen)
                 for i in range(TABLE_ROWS):
                     for j in range(TABLE_COLS):
-                        if self.main.game.table[i][j] < 0:
+                        if self.game.table[i][j] < 0:
                             canvas.itemconfigure(cells[i][j], fill=APPLE_COLOR)
-                        elif self.main.game.table[i][j] > 0:
+                        elif self.game.table[i][j] > 0:
                             canvas.itemconfigure(cells[i][j], fill=SNAKE_COLOR)
                         else:
                             canvas.itemconfigure(cells[i][j], fill=TABLE_COLOR)
             else:
-                score = self.main.game.snake_length - SNAKE_INITIAL_LENGTH
-                if score == TABLE_ROWS * TABLE_COLS - SNAKE_INITIAL_LENGTH:
-                    messagebox.showinfo(message='    YOU WIN!    \n\n    Your score: {}'.format(score))
+                if self.game.score == TABLE_ROWS * TABLE_COLS - SNAKE_INITIAL_LENGTH:
+                    messagebox.showinfo(message='    YOU WIN!    \n\n    Your score: {}'.format(self.game.score))
                 else:
-                    messagebox.showinfo(message='    GAME OVER!    \n\n    Your score: {}'.format(score))
+                    messagebox.showinfo(message='    GAME OVER!    \n\n    Your score: {}'.format(self.game.score))
                 ans = messagebox.askyesno(message='Do you want to play again?')
                 if ans:
-                    self.main.restart()
+                    self.new_game()
                     refresh_screen()
                 else:
                     window.destroy()

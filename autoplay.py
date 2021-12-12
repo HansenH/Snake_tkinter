@@ -6,8 +6,8 @@ import snake
 import threading
 
 class AutoPlayer():
-    def __init__(self, main):
-        self.game = main.game
+    def __init__(self, game: snake.Game):
+        self.game = game
         self.game.go_right()
         self.play()
 
@@ -29,5 +29,4 @@ class AutoPlayer():
 
 if __name__ == '__main__':
     snake.SPEED = 0.02
-    main = snake.Main()
-    player = AutoPlayer(main)
+    player = AutoPlayer(snake.Main().ui.game)
