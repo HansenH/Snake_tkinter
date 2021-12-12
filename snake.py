@@ -22,7 +22,7 @@ APPLE_COLOR = '#FF0000'
 WINDOW_ADAPT = True     # True: window can self-adapt, False: lock window size
 
 class Main():
-    '''listening key events and create game and ui threads'''
+    '''listening key events and create ui thread'''
     def __init__(self):
         self.ui = UI()
         self.ui.start()
@@ -47,10 +47,6 @@ class Main():
         keyboard.on_press_key('s', down, suppress=False)
         keyboard.on_press_key('a', left, suppress=False)
         keyboard.on_press_key('d', right, suppress=False)
-
-    def restart(self):
-        self.game = Game()
-        self.game.start()
 
 
 class Game(threading.Thread):
