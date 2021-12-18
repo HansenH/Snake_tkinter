@@ -5,3 +5,5 @@ Snake game (python tkinter)
 ```
 pip install keyboard
 ```
+  
+![image](https://github.com/HansenH/Snake_tkinter/blob/main/Screenshot.png)  
